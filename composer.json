@@ -1,0 +1,27 @@
+{
+  "name": "the13th/holzregal",
+  "description": "Holzregal plugin",
+  "version": "1.0.0",
+  "type": "shopware-platform-plugin",
+  "license": "MIT",
+  "authors": [
+      {
+          "name": "13th web / soft / service"
+      }
+  ],
+  "require": {
+      "shopware/core": "6.5.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "The13thHolzregal\\": "src/"
+    }
+  },
+  "extra": {
+    "shopware-plugin-class": "The13thHolzregal\\The13thHolzregal",
+    "label": {
+      "de-DE": "Holzregal plugin",
+      "en-GB": "Holzregal plugin"
+    }
+  }
+}
