@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+
+        <service id="The13thHolzregal\Service\HolzregalService">
+
+        </service>
+
+        <service id="The13thHolzregal\Subscriber\Subscriber">
+            <argument type="service" id="Symfony\Contracts\EventDispatcher\EventDispatcherInterface"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
+        <service id="The13thHolzregal\Command\HolzregalCommand">
+            <tag name="console.command" command="The13thHolzregal:Holzregalcommand"/>
+        </service>
+
+        <service id="The13thHolzregal\Storefront\Controller\HolzregalController" public="true">
+            <call method="setContainer">
+                <argument type="service" id="service_container"/>
+            </call>
+            <call method="setTwig">
+                <argument type="service" id="twig"/>
+            </call>            
+        </service>
+
+        <service id="The13thHolzregal\Core\Content\HolzregalEntity\HolzregalEntityDefinition">
+            <tag name="shopware.entity.definition" entity="holzregal_table" />
+        </service>
+
+    </services>
+</container>
