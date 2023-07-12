@@ -433,8 +433,8 @@ class HolzregalController extends StorefrontController
         $curl = curl_init();
 
         curl_setopt_array($curl, [
-          CURLOPT_PORT => "8000",
-          CURLOPT_URL => "http://localhost:8000/api/product",
+          CURLOPT_PORT => "443",
+          CURLOPT_URL => "http://localhost:443/api/product",
           CURLOPT_RETURNTRANSFER => true,
           CURLOPT_ENCODING => "",
           CURLOPT_MAXREDIRS => 10,
@@ -470,7 +470,7 @@ class HolzregalController extends StorefrontController
     }
 
     private function getBearerToken() {
-        //curl --request POST --url http://localhost:8000/api/oauth/token --header 'Content-Type: application/json' --data '{"grant_type":"client_credentials","client_id":"SWIAS1PHB3BMSLPMDUHNSKL5BA","client_secret":"dDJZSko5NVF3Nm1ERHE3VTBIa3Y1NXR4ZE5vdkJHblhUbWs0RU8"}'      
+        //curl --request POST --url http://localhost:443/api/oauth/token --header 'Content-Type: application/json' --data '{"grant_type":"client_credentials","client_id":"SWIAS1PHB3BMSLPMDUHNSKL5BA","client_secret":"dDJZSko5NVF3Nm1ERHE3VTBIa3Y1NXR4ZE5vdkJHblhUbWs0RU8"}'      
 
         $postParameter = array(
             'grant_type' => 'client_credentials',
@@ -500,9 +500,9 @@ class HolzregalController extends StorefrontController
 
 /*
 
-curl --request POST --url http://localhost:8000/api/oauth/token --header 'Content-Type: application/json' --data '{"grant_type":"client_credentials","client_id":"SWIAS1PHB3BMSLPMDUHNSKL5BA","client_secret":"dDJZSko5NVF3Nm1ERHE3VTBIa3Y1NXR4ZE5vdkJHblhUbWs0RU8"}'
+curl --request POST --url http://localhost:443/api/oauth/token --header 'Content-Type: application/json' --data '{"grant_type":"client_credentials","client_id":"SWIAS1PHB3BMSLPMDUHNSKL5BA","client_secret":"dDJZSko5NVF3Nm1ERHE3VTBIa3Y1NXR4ZE5vdkJHblhUbWs0RU8"}'
 
 
-curl --request POST --url http://localhost:8000//store-api/context --header 'Content-Type: application/json' --data '{"sw-access-token":"SWSCM2L0WLFJBWFUDZR6VM1VDA"}'
+curl --request POST --url http://localhost:443//store-api/context --header 'Content-Type: application/json' --data '{"sw-access-token":"SWSCM2L0WLFJBWFUDZR6VM1VDA"}'
 
 */
