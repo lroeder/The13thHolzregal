@@ -1,0 +1,58 @@
+{% sw_extends '@Storefront/storefront/page/content/index.html.twig' %}
+
+{% block base_content %}
+		<div id="main">
+			<div id="uheader">
+				<div id="bild">
+						<h1>Der Konfigurator {{konfig_id}}</h1>
+				<img src="{{ asset('bundles/the13thholzregal/shutterstock_13283008.jpg', 'asset') }}" width="250" align="right" vspace="10" hspace="30" alt="Text?">
+			<p>Nutzen Sie unseren Konfigurator, um sich ein Regalsystem nach Ihren spezifischen Anforderungen zusammenzustellen. Sie haben die Wahl zwischen diversen Grundmaßen, Ständerhöhen, Fachbodentiefen, Stützarten und Oberflächen.</p>
+			<p>Das für Sie passende Maß ist nicht dabei? Oder Sie benötigen Tipps für die Konfiguration? Nehmen Sie bitte Kontakt mit uns auf. Wir helfen Ihnen gerne.</p>
+				</div>	
+				<div id="warenkorb">
+								
+							<table style="margin:0 ;width:100%;height:100%;background-image:url({{ asset('bundles/the13thholzregal/NeuHolz.png', 'asset') }});background-repeat:no-repeat;">
+							<tbody><tr>
+								<td style="width:100%;height:100%;text-align:center;cursor:pointer;" onclick="parent.location.href='/kontaktformular'">
+									
+								</td>
+							</tr>
+					
+							</tbody></table>
+									</div>	
+			</div>	
+			<div id="content">
+					<br><br>
+			<center>
+			<table border="0" style="color:#000;">
+			<tbody><tr><td style="width:250px;text-align:center;"><img src="{{ asset('bundles/the13thholzregal/ModellOskar.gif', 'asset') }}" border="0">
+			<br>Stützart Traverse</td><td></td><td style="width:250px;text-align:center;">
+			<img src="{{ asset('bundles/the13thholzregal/ModellKlara.gif', 'asset') }}" border="0">
+			<br>Stützart Diagonalkreuz</td></tr>
+			<tr><td style="width:250px;">
+			<center>
+				<table style="border-collapse:collapse;cursor:pointer;" onclick="location.href='?id=configurator&amp;stuetzart=Traverse&amp;n=1'">
+					<tbody><tr>
+						<td style="background-image:url({{ asset('bundles/the13thholzregal/regalstaender.gif', 'asset') }}); width:4px;height:198px"></td>
+						<td style="background-image:url({{ asset('bundles/the13thholzregal/6_regalboden-.gif', 'asset') }}); width:78px" id="bodegrafik_1"></td>
+						<td style="background-image:url({{ asset('bundles/the13thholzregal/regalstaender.gif', 'asset') }}); width:4px"></td>
+					</tr>
+				</tbody></table><br>im Falle einer Beidseitigen Bedienung (Mittelraum)
+			</center></td><td style="width:100px;">
+				<br>
+				
+			</td><td style="width:250px;">
+			<center>
+				<table style="border-collapse:collapse;cursor:pointer;" onclick="location.href='?id=configurator&amp;stuetzart=Diagonalkreuz&amp;n=1'">
+					<tbody><tr>
+						<td style="background-image:url({{ asset('bundles/the13thholzregal/regalstaender.gif', 'asset') }}); width:4px;height:198px"></td>
+						<td style="background-image:url({{ asset('bundles/the13thholzregal/6_regalbodenx.gif', 'asset') }}); width:78px" id="bodegrafik_1"></td>
+						<td style="background-image:url({{ asset('bundles/the13thholzregal/regalstaender.gif', 'asset') }}); width:4px"></td>
+					</tr>
+				</tbody></table><br>für eine Vorwand montage
+			</center></td></tr>
+			</tbody></table>
+			</center>
+			</div>
+		</div>    
+{% endblock %}
