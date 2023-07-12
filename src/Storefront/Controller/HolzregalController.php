@@ -13,6 +13,10 @@ use Shopware\Storefront\Framework\Routing\StorefrontResponse;
 use Shopware\Core\Checkout\Cart\LineItemFactoryRegistry;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
 use Shopware\Core\Checkout\Cart\Cart;
+use Shopware\Core\Framework\Uuid\Uuid;
+use Shopware\Core\Checkout\Cart\Price\QuantityPriceCalculator;
+use Shopware\Core\Checkout\Cart\Price\Struct\QuantityPriceDefinition;
+
 
 /**
  * @Route(defaults={"_routeScope"={"storefront"}})
@@ -26,15 +30,21 @@ class HolzregalController extends StorefrontController
     private $genericPageLoader;
     private LineItemFactoryRegistry $factory;
     private CartService $cartService;
+    private SalesChannelContext $salesChannelContext;
+    private QuantityPriceCalculator $calculator;
+    private $cart;
 
 
 
-    public function __construct( GenericPageLoaderInterface $genericPageLoader)
+    public function __construct( 
+        GenericPageLoaderInterface $genericPageLoader, LineItemFactoryRegistry $factory, 
+        CartService $cartService, QuantityPriceCalculator $calculator)
     {
         $this->genericPageLoader = $genericPageLoader;
-        //, LineItemFactoryRegistry $factory, CartService $cartService
-        //$this->factory = $factory;
-        //$this->cartService = $cartService;
+        
+        $this->factory = $factory;
+        $this->cartService = $cartService;
+        $this->calculator = $calculator;
     }
 
     /**
@@ -51,9 +61,12 @@ class HolzregalController extends StorefrontController
         }
         
 
-        if(isset($_GET['addCard'])) {
+        if(isset($_POST['addCard'])) {
+            $this->addCart($context);
             unset( $_SESSION['holzregal']['id']);
+            unset($_POST['regal']);
         }
+
 
 
         $this->holzregalId();
@@ -65,12 +78,17 @@ class HolzregalController extends StorefrontController
             if(isset($_GET['test']) AND $_GET['test'] == 'test') {
                 return $this->renderStorefront('@the13thholzregal/storefront/page/konfig.html.twig', [
                 ]);
+            } else if(isset($_POST['addCardXX'])) {
+                $this->addCart($context);
+                return $this->renderStorefront('@Storefront/storefront/base.html.twig', [
+                    'page' => $page
+                ]);
+
             } else {
                 return $this->renderStorefront('@the13thholzregal/storefront/page/holzregal/konfig.html.twig', [
                     'page' => $page,
                     'konfig_id' => $_SESSION['holzregal']['id'],
                     'session_id' => session_id(),
-                    'artikel' => $this->getArtikel(),
                     'test' => headers_list(),
                     'regalVar' => array(
                         'tiefe' => array(22,30,40,50,60,70),
@@ -83,7 +101,9 @@ class HolzregalController extends StorefrontController
                         'breite' => [50,70,80,100,120],
                         'stuetzart' => ['Diagonalkreuz', 'Traverse']
                     ),
+                    'uuid' => $id = Uuid::randomHex(),
                     'regal' => $this->getRegalAufbau(),
+                    'orderArt' => $this->getArtikelItems(),
                     'svg' => $_SESSION['holzregal']['svg'],
                     'rAbstand' => $this->rAbstand
                 ]);
@@ -102,6 +122,61 @@ class HolzregalController extends StorefrontController
             file_put_contents('bundles/the13thholzregal/lfd.txt', ($lfdKonfig));
             $_SESSION['holzregal']['id'] = $lfdKonfig;
         } 
+    }
+
+    private function addCart(SalesChannelContext $context) {
+        //$cart = $this->cartService;
+        $cart = $this->cartService->getCart($context->getToken(), $context);
+
+
+        foreach($this->getArtikelItems() AS $rowArt =>  $rowCount) {
+            $lineItem = $this->factory->create([
+                'type' => LineItem::PRODUCT_LINE_ITEM_TYPE, // Results in 'product'
+                'referencedId' => $rowArt, // this is not a valid UUID, change this to your actual ID!
+                'quantity' => $rowCount,
+                'label' => 'Test',
+                'payload' => ['custom_regalconfig_id' => $_SESSION['holzregal']['id']]
+            ], $context);
+    
+            $this->cartService->add($cart, $lineItem, $context);
+        }
+
+
+        
+    }
+
+    private function getArtikelItems() {
+        $artRegal = [];
+
+        $artikel = $this->getArtikel();
+
+        $regal = $this->getRegalAufbau();
+    
+        $maxCount = count($regal['aufbau']);
+
+        foreach($regal['aufbau'] AS $key => $value) {
+
+            //Ständer
+                $xArtNr = $value['hoehe'].'0.35.'.$regal['tiefe'].'0.'.$regal['oberflaeche'];
+                if($key == 1) {
+                    $artRegal[$artikel[$xArtNr]['articleID']] = 2;
+                } else if($maxCount > $key) {
+                    $artRegal[$artikel[$xArtNr]['articleID']] = $artRegal[$artikel[$xArtNr]['articleID']] + 1;
+                }
+                //$artRegal[] = $xArtNr;
+
+            // Böden
+                $xArtNr = '20.'.$value['breite'].'0.'.$regal['tiefe'].'0.'.$regal['oberflaeche'];
+                //$artRegal[] = $xArtNr;
+                if($key == 1) {
+                    $artRegal[$artikel[$xArtNr]['articleID']] = $value['boden'];
+                } else if($maxCount > $key) {
+                    $artRegal[$artikel[$xArtNr]['articleID']] = $artRegal[$artikel[$xArtNr]['articleID']] + $value['boden'];
+                }                
+
+        }
+
+        return $artRegal;
     }
 
     // SWIAS1PHB3BMSLPMDUHNSKL5BA
@@ -358,8 +433,8 @@ class HolzregalController extends StorefrontController
         $curl = curl_init();
 
         curl_setopt_array($curl, [
-          CURLOPT_PORT => "443",
-          CURLOPT_URL => "http://localhost:443/api/product",
+          CURLOPT_PORT => "8000",
+          CURLOPT_URL => "http://localhost:8000/api/product",
           CURLOPT_RETURNTRANSFER => true,
           CURLOPT_ENCODING => "",
           CURLOPT_MAXREDIRS => 10,
@@ -380,20 +455,22 @@ class HolzregalController extends StorefrontController
         if ($err) {
           echo "cURL Error #:" . $err;
         } else {
-            $res = json_decode($response, true);
+          $res = json_decode($response, true);
           foreach($res['data'] AS $key => $value) {
-            $d[$value['attributes']['productNumber']] = array('bez' => $value['attributes']['name'], 'preis' => $value['attributes']['price']['0']['net'], 'articleID' => $value['id'], 'weight' => $value['attributes']['weight'], 'SWAGDATA' => $value);
+            $d[$value['attributes']['productNumber']] = array('bez' => $value['attributes']['name'], 'preis' => $value['attributes']['price']['0']['net'], 'articleID' => $value['id'], 'weight' => $value['attributes']['weight']);
           }
+          /*
           $filename = 'bundles/the13thholzregal/artikel.json';
-          if(date ("Ymd-H", filemtime($filename)) != date ("Ymd-H")) {
+          if(date ("Ymd-Hi", filemtime($filename)) != date ("Ymd-Hi")) {
             file_put_contents($filename, json_encode($d, true));
-          }
-          return date ("F d Y H:i:s.", filemtime($filename));
+          }*/
+          //return date ("F d Y H:i:s.", filemtime($filename));
+          return $d;
         }
     }
 
     private function getBearerToken() {
-        //curl --request POST --url http://localhost:443/api/oauth/token --header 'Content-Type: application/json' --data '{"grant_type":"client_credentials","client_id":"SWIAS1PHB3BMSLPMDUHNSKL5BA","client_secret":"dDJZSko5NVF3Nm1ERHE3VTBIa3Y1NXR4ZE5vdkJHblhUbWs0RU8"}'      
+        //curl --request POST --url http://localhost:8000/api/oauth/token --header 'Content-Type: application/json' --data '{"grant_type":"client_credentials","client_id":"SWIAS1PHB3BMSLPMDUHNSKL5BA","client_secret":"dDJZSko5NVF3Nm1ERHE3VTBIa3Y1NXR4ZE5vdkJHblhUbWs0RU8"}'      
 
         $postParameter = array(
             'grant_type' => 'client_credentials',
@@ -419,11 +496,13 @@ class HolzregalController extends StorefrontController
 }
 
 
+
+
 /*
 
-curl --request POST --url http://localhost:443/api/oauth/token --header 'Content-Type: application/json' --data '{"grant_type":"client_credentials","client_id":"SWIAS1PHB3BMSLPMDUHNSKL5BA","client_secret":"dDJZSko5NVF3Nm1ERHE3VTBIa3Y1NXR4ZE5vdkJHblhUbWs0RU8"}'
+curl --request POST --url http://localhost:8000/api/oauth/token --header 'Content-Type: application/json' --data '{"grant_type":"client_credentials","client_id":"SWIAS1PHB3BMSLPMDUHNSKL5BA","client_secret":"dDJZSko5NVF3Nm1ERHE3VTBIa3Y1NXR4ZE5vdkJHblhUbWs0RU8"}'
 
 
-curl --request POST --url http://localhost:443//store-api/context --header 'Content-Type: application/json' --data '{"sw-access-token":"SWSCM2L0WLFJBWFUDZR6VM1VDA"}'
+curl --request POST --url http://localhost:8000//store-api/context --header 'Content-Type: application/json' --data '{"sw-access-token":"SWSCM2L0WLFJBWFUDZR6VM1VDA"}'
 
 */
