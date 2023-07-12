@@ -61,7 +61,11 @@
 						{% endfor %}
 						</select>
 					</td><td>
-					<button class="btn btn-primary btn-buy">Warenkorb</button>
+						<div class="d-grid">
+							<button class="btn btn-buy" title="In den Warenkorb" name="addCard" value="addCard">
+							In den Warenkorb
+							</button>
+						</div>
 					</td>
 				</tr>   
 			</table>
@@ -165,6 +169,7 @@
 		</tr>
 		</table>
 		</form>
+
 	</div>
 </div>    
 {% endblock %}
