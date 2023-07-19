@@ -14,7 +14,7 @@ class Subscriber implements EventSubscriberInterface
         return [
             ProductPageLoadedEvent::class => 'onProductPageLoaded',
             CheckoutCartPageLoadedEvent::class  => 'onCheckoutPageLoaded',
-            CheckoutConfirmPageLoadedEvent::class => 'onCheckoutConfirmPageLoaded'
+            CheckoutConfirmPageLoadedEvent::class => 'onCheckoutConfirmPageLoaded',
         ];
     }
 
@@ -58,5 +58,6 @@ class Subscriber implements EventSubscriberInterface
         //do something in the checkout
 
     }
+
 
 }
