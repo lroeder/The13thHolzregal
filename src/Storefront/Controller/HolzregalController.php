@@ -56,14 +56,9 @@ class HolzregalController extends StorefrontController
     {
         $page = $this->genericPageLoader->load($request, $context);
 
-        foreach($request->headers AS $key => $value) {
-            $headers[$key] = $value;
-        }
-        
-
         if(isset($_POST['addCard'])) {
             $this->addCart($context);
-            unset( $_SESSION['holzregal']['id']);
+            unset($_SESSION['holzregal']['id']);
             unset($_POST['regal']);
         }
 
@@ -71,48 +66,30 @@ class HolzregalController extends StorefrontController
 
         $this->holzregalId();
         
-            if(isset($_POST['regal']['addsub'])) {
-                $_POST['regal']['anzahl'] = $_POST['regal']['anzahl'] + $_POST['regal']['addsub'];
-            }
+        if(isset($_POST['regal']['addsub'])) {
+            $_POST['regal']['anzahl'] = $_POST['regal']['anzahl'] + $_POST['regal']['addsub'];
+        }
 
-            if(isset($_GET['test']) AND $_GET['test'] == 'test') {
-                return $this->renderStorefront('@the13thholzregal/storefront/page/konfig.html.twig', [
-                ]);
-            } else if(isset($_POST['addCardXX'])) {
-                $this->addCart($context);
-                return $this->renderStorefront('@Storefront/storefront/base.html.twig', [
-                    'page' => $page
-                ]);
-
-            } else {
-                return $this->renderStorefront('@the13thholzregal/storefront/page/holzregal/konfig.html.twig', [
-                    'page' => $page,
-                    'konfig_id' => $_SESSION['holzregal']['id'],
-                    'session_id' => session_id(),
-                    'test' => headers_list(),
-                    'regalVar' => array(
-                        'tiefe' => array(22,30,40,50,60,70),
-                        'oberflaeche' => array('u', 'k'),
-                        'oberflaechename' => array(
-                            'u' => 'unbehandelt',
-                            'k' => 'klar lackiert'
-                        ),
-                        'hoehe' => [89,149,189,209,229,249,259,289],
-                        'breite' => [50,70,80,100,120],
-                        'stuetzart' => ['Diagonalkreuz', 'Traverse']
-                    ),
-                    'uuid' => $id = Uuid::randomHex(),
-                    'regal' => $this->getRegalAufbau(),
-                    'orderArt' => $this->getArtikelItems(),
-                    'svg' => $_SESSION['holzregal']['svg'],
-                    'rAbstand' => $this->rAbstand
-                ]);
-            }
-
-
-    
-           
-        
+        return $this->renderStorefront('@the13thholzregal/storefront/page/holzregal/konfig.html.twig', [
+            'page' => $page,
+            'konfig_id' => $_SESSION['holzregal']['id'],
+            'session_id' => session_id(),
+            'regalVar' => array(
+                'tiefe' => array(22,30,40,50,60,70),
+                'oberflaeche' => array('u', 'k'),
+                'oberflaechename' => array(
+                    'u' => 'unbehandelt',
+                    'k' => 'klar lackiert'
+                ),
+                'hoehe' => [89,149,189,209,229,249,259,289],
+                'breite' => [50,70,80,100,120],
+                'stuetzart' => ['Diagonalkreuz', 'Traverse']
+            ),
+            'regal' => $this->getRegalAufbau(),
+            'orderArt' => $this->getArtikelItems(),
+            'svg' => $_SESSION['holzregal']['svg'],
+            'rAbstand' => $this->rAbstand
+        ]);
     }
 
     private function holzregalId() {
@@ -128,21 +105,26 @@ class HolzregalController extends StorefrontController
         //$cart = $this->cartService;
         $cart = $this->cartService->getCart($context->getToken(), $context);
 
+        $artikelItems = $this->getArtikelItems();
 
-        foreach($this->getArtikelItems() AS $rowArt =>  $rowCount) {
+        $xItems = count($artikelItems['items']);
+        $xItem = 1;
+        foreach($artikelItems['items'] AS $rowArt =>  $rowCount) {
             $lineItem = $this->factory->create([
                 'type' => LineItem::PRODUCT_LINE_ITEM_TYPE, // Results in 'product'
                 'referencedId' => $rowArt, // this is not a valid UUID, change this to your actual ID!
                 'quantity' => $rowCount,
-                'label' => 'Test',
-                'payload' => ['custom_regalconfig_id' => $_SESSION['holzregal']['id']]
+                'stackable' => false,
+                'payload' => [
+                    'custom_regalconfig_id' => $_SESSION['holzregal']['id'],
+                    'custom_regalconfig_mass' => $artikelItems['mass'],
+                    'custom_regalconfig_item' => "Position {$xItem} von {$xItems} ",
+                ]
             ], $context);
-    
+            $lineItem->setStackable(false);
             $this->cartService->add($cart, $lineItem, $context);
+            $xItem++;
         }
-
-
-        
     }
 
     private function getArtikelItems() {
@@ -152,14 +134,15 @@ class HolzregalController extends StorefrontController
 
         $regal = $this->getRegalAufbau();
     
-        $maxCount = count($regal['aufbau']);
+        //$maxCount = count($regal['aufbau']);
 
-        foreach($regal['aufbau'] AS $key => $value) {
-
+        foreach($regal['warenkorb'] AS $key => $value) {
+            $artRegal['items'][$artikel[$key]['articleID']] = $value * 1;
+            /*
             //Ständer
                 $xArtNr = $value['hoehe'].'0.35.'.$regal['tiefe'].'0.'.$regal['oberflaeche'];
                 if($key == 1) {
-                    $artRegal[$artikel[$xArtNr]['articleID']] = 2;
+                    $_POST['regal']['warenkorb'] = 2 + 1;
                 } else if($maxCount > $key) {
                     $artRegal[$artikel[$xArtNr]['articleID']] = $artRegal[$artikel[$xArtNr]['articleID']] + 1;
                 }
@@ -169,13 +152,14 @@ class HolzregalController extends StorefrontController
                 $xArtNr = '20.'.$value['breite'].'0.'.$regal['tiefe'].'0.'.$regal['oberflaeche'];
                 //$artRegal[] = $xArtNr;
                 if($key == 1) {
-                    $artRegal[$artikel[$xArtNr]['articleID']] = $value['boden'];
+                    $artRegal[$artikel[$xArtNr]['articleID']] = $value['boden'] * 1;
                 } else if($maxCount > $key) {
                     $artRegal[$artikel[$xArtNr]['articleID']] = $artRegal[$artikel[$xArtNr]['articleID']] + $value['boden'];
-                }                
+                }
+                */
 
         }
-
+        $artRegal['mass'] = "{$regal['gesamtBreite']} x {$regal['tiefe']} x {$regal['gesamtHoehe']} cm";
         return $artRegal;
     }
 
@@ -234,15 +218,13 @@ class HolzregalController extends StorefrontController
         $XXx1 = 0;
         $YYx1 = 0;
         $XYAnzahl = 0;
-        $wkorb['SW10001']['anzahl'] = 0;
-        $wkorb['SW10001']['bez'] = 'Wandbefestigungs-Set';
         if($stuetzart == 'Diagonalkreuz') {
-        $wkorb['klara']['anzahl'] = 0;
-        $wkorb['klara']['bez'] = 'model klara ';
+        $wkorb['klara'] = 0;
         } else {
-        $wkorb['oskar']['anzahl'] = 0;
-        $wkorb['oskar']['bez'] = 'model oskar ';
+        $wkorb['oskar'] = 0;
         }
+        $wkorb['SW10001'] = 0;
+
 
         foreach($_POST['regal']['aufbau'] AS $key => $value) {
             $x = $key;
@@ -264,21 +246,21 @@ class HolzregalController extends StorefrontController
         
                 if($_POST['regal']['anzahl'] % 2 != 0) {
                     if($stuetzart == 'Traverse' && (($x == 2 || $x == 4 || $x == 6 || $x == 8 || $x == 10 || $x == 12) OR $_POST['regal']['anzahl'] == 1)) {
-                        $wkorb['oskar']['anzahl'] = $wkorb['oskar']['anzahl'] +1;
+                        $wkorb['oskar'] = $wkorb['oskar'] +1;
                         $aStuetze .= '  <line x1="'.(2.25*$vFactor + ($vBreite*$vFactor - $value['breite']*$vFactor) + $vAbstandLinks).'" y1="'.((5*$vFactor + $vAbstandOben) + (289*$vFactor - $value['hoehe']*$vFactor)).'" x2="'.(2.25*$vFactor + $vBreite*$vFactor + $vAbstandLinks).'" y2="'.((5*$vFactor + $vAbstandOben) + (289*$vFactor - $value['hoehe']*$vFactor)).'" style="stroke:#ababab;stroke-width:10;" />
                                 <line x1="'.(2.25*$vFactor + ($vBreite*$vFactor - $value['breite']*$vFactor) + $vAbstandLinks).'" y1="'.(284*$vFactor + $vAbstandOben).'" x2="'.(2.25*$vFactor + $vBreite*$vFactor + $vAbstandLinks).'" y2="'.(284*$vFactor + $vAbstandOben).'" style="stroke:#ababab;stroke-width:10;" />';
                     } else if($stuetzart == 'Diagonalkreuz' && ((  $x == 2 || $x == 4 || $x == 6 || $x == 8 || $x == 10 || $x == 12) OR $_POST['regal']['anzahl'] == 1)) {
-                        $wkorb['klara']['anzahl'] = $wkorb['klara']['anzahl'] +1;
+                        $wkorb['klara'] = $wkorb['klara'] +1;
                         $aStuetze .= '  <line x1="'.(2.25*$vFactor + ($vBreite*$vFactor - $value['breite']*$vFactor) + $vAbstandLinks).'" y1="'.((5*$vFactor + $vAbstandOben) + (289*$vFactor - $value['hoehe']*$vFactor)).'" x2="'.(2.25*$vFactor + $vBreite*$vFactor + $vAbstandLinks).'" y2="'.(284*$vFactor + $vAbstandOben).'" style="stroke:#ababab;stroke-width:1;" />
                                 <line x1="'.(2.25*$vFactor + ($vBreite*$vFactor - $value['breite']*$vFactor) + $vAbstandLinks).'" y1="'.(284*$vFactor + $vAbstandOben).'" x2="'.(2.25*$vFactor + $vBreite*$vFactor + $vAbstandLinks).'" y2="'.((5*$vFactor + $vAbstandOben) + (289*$vFactor - $value['hoehe']*$vFactor)).'" style="stroke:#ababab;stroke-width:1;" />';
                     }
                 } else {
                     if($stuetzart == 'Traverse' && ($x == 1 || $x == 3 || $x == 5 || $x == 7 || $x == 9 || $x == 11)) {
-                        $wkorb['oskar']['anzahl'] = $wkorb['oskar']['anzahl'] +1;
+                        $wkorb['oskar'] = $wkorb['oskar'] +1;
                         $aStuetze .= '  <line x1="'.(2.25*$vFactor + ($vBreite*$vFactor - $value['breite']*$vFactor) + $vAbstandLinks).'" y1="'.((5*$vFactor + $vAbstandOben) + (289*$vFactor - $value['hoehe']*$vFactor)).'" x2="'.(2.25*$vFactor + $vBreite*$vFactor + $vAbstandLinks).'" y2="'.((5*$vFactor + $vAbstandOben) + (289*$vFactor - $value['hoehe']*$vFactor)).'" style="stroke:#ababab;stroke-width:10;" />
                                 <line x1="'.(2.25*$vFactor + ($vBreite*$vFactor - $value['breite']*$vFactor) + $vAbstandLinks).'" y1="'.(284*$vFactor + $vAbstandOben).'" x2="'.(2.25*$vFactor + $vBreite*$vFactor + $vAbstandLinks).'" y2="'.(284*$vFactor + $vAbstandOben).'" style="stroke:#ababab;stroke-width:10;" />';
                     } else if($stuetzart == 'Diagonalkreuz' && ($x == 1 || $x == 3 || $x == 5 || $x == 7 || $x == 9 || $x == 11)) {
-                        $wkorb['klara']['anzahl'] = $wkorb['klara']['anzahl'] +1;
+                        $wkorb['klara'] = $wkorb['klara'] +1;
                         $aStuetze .= '  <line x1="'.(2.25*$vFactor + ($vBreite*$vFactor - $value['breite']*$vFactor) + $vAbstandLinks).'" y1="'.((5*$vFactor + $vAbstandOben) + (289*$vFactor - $value['hoehe']*$vFactor)).'" x2="'.(2.25*$vFactor + $vBreite*$vFactor + $vAbstandLinks).'" y2="'.(284*$vFactor + $vAbstandOben).'" style="stroke:#ababab;stroke-width:1;" />
                                 <line x1="'.(2.25*$vFactor + ($vBreite*$vFactor - $value['breite']*$vFactor) + $vAbstandLinks).'" y1="'.(284*$vFactor + $vAbstandOben).'" x2="'.(2.25*$vFactor + $vBreite*$vFactor + $vAbstandLinks).'" y2="'.((5*$vFactor + $vAbstandOben) + (289*$vFactor - $value['hoehe']*$vFactor)).'" style="stroke:#ababab;stroke-width:1;" />';
                     }
@@ -304,10 +286,10 @@ class HolzregalController extends StorefrontController
                         $aBoeden .= '<line x1="'.(2.25 + ($vBreite*$vFactor - $value['breite']*$vFactor) + $vAbstandLinks).'" y1="'.(289 + $vAbstandOben + 105).'" x2="'.(2.25 + $vBreite*$vFactor + $vAbstandLinks).'" y2="'.(289 + $vAbstandOben + 105).'" style="stroke:#ababab;stroke-width:0.5;" />';//#ffcc52
                     }
                     if(!isset($wkorb['20.'.($value['breite']*10).'.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']])) {
-                        $wkorb['20.'.($value['breite']*10).'.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = 0;
-                        $wkorb['20.'.($value['breite']*10).'.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Boden '.$value['breite'].'x'.$_POST['regal']['tiefe'].' cm';
+                        $wkorb['20.'.($value['breite']*10).'.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']] = 0;
+                        //$wkorb['20.'.($value['breite']*10).'.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Boden '.$value['breite'].'x'.$_POST['regal']['tiefe'].' cm';
                     }
-                    $wkorb['20.'.($value['breite']*10).'.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = $wkorb['20.'.($value['breite']*10).'.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] + 1;
+                    $wkorb['20.'.($value['breite']*10).'.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']] = $wkorb['20.'.($value['breite']*10).'.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']] + 1;
                     $aBoeden .= '<line x1="'.(2.25 + ($vBreite*$vFactor - $value['breite']*$vFactor) + $vAbstandLinks).'" y1="'.((280*$vFactor + $vAbstandOben) - ($vAbstand * ($y - 1))).'" x2="'.(2.25 + $vBreite*$vFactor + $vAbstandLinks).'" y2="'.((280*$vFactor + $vAbstandOben) - ($vAbstand * ($y - 1))).'" style="stroke:#ffcc52;stroke-width:3;" />';//#ffcc52
                     for($z=0;$z<=($value['breite']*$vFactor - 8.5*$vFactor);) {
                         $XYAnzahl = $XYAnzahl +1;
@@ -333,60 +315,60 @@ class HolzregalController extends StorefrontController
             if($xB == 1) {
                 //echo $xB."-".$B[$xB]['L']."<br>";
                 if(!isset($wkorb[($B[$xB]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']])) 
-                    {	$wkorb[($B[$xB]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = 0;
-                        $wkorb[($B[$xB]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB]['L'].'x'.$_POST['regal']['tiefe'].' cm';
+                    {	$wkorb[($B[$xB]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= 0;
+                        //$wkorb[($B[$xB]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB]['L'].'x'.$_POST['regal']['tiefe'].' cm';
                         if($xxHoehe < $B[$xB]['L']) {$xxHoehe = $B[$xB]['L'];}
                     }
-                $wkorb[($B[$xB]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = $wkorb[($B[$xB]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] + 1;
-                $wkorb['SW10001']['anzahl'] = $wkorb['SW10001']['anzahl'] + 1;
+                $wkorb[($B[$xB]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= $wkorb[($B[$xB]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]+ 1;
+                $wkorb['SW10001']= $wkorb['SW10001']+ 1;
                 if(isset($B[$xB+1]['L']) AND $B[$xB]['R'] < $B[$xB+1]['L']) {
                     //echo $xB."-1-".$B[$xB+1]['L']."<br>";
                     if(!isset($wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']])) 
-                        {	$wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = 0;
-                            $wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB+1]['L'].'x'.$_POST['regal']['tiefe'].' cm';
+                        {	$wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= 0;
+                            //$wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB+1]['L'].'x'.$_POST['regal']['tiefe'].' cm';
                             if($xxHoehe < $B[$xB+1]['L']) {$xxHoehe = $B[$xB+1]['L'];}
                         }
-                    $wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = $wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] + 1;
-                $wkorb['SW10001']['anzahl'] = $wkorb['SW10001']['anzahl'] + 1;
+                    $wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= $wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]+ 1;
+                $wkorb['SW10001']= $wkorb['SW10001']+ 1;
                 } else {
                     //echo $xB."-2-".$B[$xB]['R']."<br>";
                     if(!isset($wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']])) 
-                        {	$wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = 0;
-                            $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB]['R'].'x'.$_POST['regal']['tiefe'].' cm';
+                        {	$wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= 0;
+                            //$wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB]['R'].'x'.$_POST['regal']['tiefe'].' cm';
                             if($xxHoehe < $B[$xB]['R']) {$xxHoehe = $B[$xB]['R'];}
                         }
-                    $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] + 1;
-                $wkorb['SW10001']['anzahl'] = $wkorb['SW10001']['anzahl'] + 1;
+                    $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]+ 1;
+                $wkorb['SW10001']= $wkorb['SW10001']+ 1;
                 }
             } else if($xB > 1 AND $xB < count($B)) {
                 if($B[$xB]['R'] < $B[$xB+1]['L']) {
                     //echo $xB."-1-".$B[$xB+1]['L']."<br>";
                     if(!isset($wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']])) 
-                        {	$wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = 0;
-                            $wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB+1]['L'].'x'.$_POST['regal']['tiefe'].' cm';
+                        {	$wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= 0;
+                            //$wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB+1]['L'].'x'.$_POST['regal']['tiefe'].' cm';
                             if($xxHoehe < $B[$xB+1]['L']) {$xxHoehe = $B[$xB+1]['L'];}
                         }
-                    $wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = $wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] + 1;
-                $wkorb['SW10001']['anzahl'] = $wkorb['SW10001']['anzahl'] + 1;
+                    $wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= $wkorb[($B[$xB+1]['L']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]+ 1;
+                $wkorb['SW10001']= $wkorb['SW10001']+ 1;
                 } else {
                     //echo $xB."-2-".$B[$xB]['R']."<br>";
                     if(!isset($wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']])) 
-                        {	$wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = 0;
-                            $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB]['R'].'x'.$_POST['regal']['tiefe'].' cm';
+                        {	$wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= 0;
+                            //$wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB]['R'].'x'.$_POST['regal']['tiefe'].' cm';
                             if($xxHoehe < $B[$xB]['R']) {$xxHoehe = $B[$xB]['R'];}
                         }
-                    $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] + 1;
-                $wkorb['SW10001']['anzahl'] = $wkorb['SW10001']['anzahl'] + 1;
+                    $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]+ 1;
+                $wkorb['SW10001']= $wkorb['SW10001']+ 1;
                 }	
             } else if($xB == count($B)) {
                     //echo $xB."-".$B[$xB]['R']."<br>";
                     if(!isset($wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']])) 
-                        {	$wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = 0;
-                            $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB]['R'].'x'.$_POST['regal']['tiefe'].' cm';
+                        {	$wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= 0;
+                            //$wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['bez'] = 'Ständer '.$B[$xB]['R'].'x'.$_POST['regal']['tiefe'].' cm';
                             if($xxHoehe < $B[$xB]['R']) {$xxHoehe = $B[$xB]['R'];}
                         }
-                    $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] = $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]['anzahl'] + 1;
-                $wkorb['SW10001']['anzahl'] = $wkorb['SW10001']['anzahl'] + 1;
+                    $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]= $wkorb[($B[$xB]['R']*10).'.35.'.($_POST['regal']['tiefe']*10).'.'.$_POST['regal']['oberflaeche']]+ 1;
+                $wkorb['SW10001']= $wkorb['SW10001']+ 1;
             }
         }
 
@@ -404,6 +386,9 @@ class HolzregalController extends StorefrontController
         $svg .= $aOrdner;
         $svg .= '</svg>';   
         $_POST['regal']['svg'] = $svg;
+        $_POST['regal']['warenkorb'] = $wkorb;
+        $_POST['regal']['gesamtBreite'] = $XXBreite + 4.5;
+        $_POST['regal']['gesamtHoehe'] = $yyHoehe;
         $this->saveSvg($svg);
         $this->rAbstand['breite'] = ($vBreite * $vFactor + $vAbstandLinks + 5);
         $this->rAbstand['links'] = $vAbstandLinks;
@@ -457,7 +442,11 @@ class HolzregalController extends StorefrontController
         } else {
           $res = json_decode($response, true);
           foreach($res['data'] AS $key => $value) {
-            $d[$value['attributes']['productNumber']] = array('bez' => $value['attributes']['name'], 'preis' => $value['attributes']['price']['0']['net'], 'articleID' => $value['id'], 'weight' => $value['attributes']['weight']);
+            $d[$value['attributes']['productNumber']] = array(
+                'bez' => $value['attributes']['name'], 
+                'preis' => $value['attributes']['price']['0']['net'], 
+                'articleID' => $value['id'], 
+                'weight' => $value['attributes']['weight']);
           }
           /*
           $filename = 'bundles/the13thholzregal/artikel.json';
